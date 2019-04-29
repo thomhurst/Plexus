@@ -6,7 +6,7 @@ plugins {
 group 'com.tomlonghurst'
 version '1.0-SNAPSHOT'
 
-sourceCompatibility = 12
+sourceCompatibility = 11
 
 repositories {
     mavenCentral()
@@ -19,8 +19,8 @@ dependencies {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "12"
+    kotlinOptions.jvmTarget = "11"
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "12"
+    kotlinOptions.jvmTarget = "11"
 }
