@@ -11,22 +11,21 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlin.system.measureTimeMillis
 
-class PlexusRequest internal constructor(val httpClient: HttpClient) : CoroutineScope {
+class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineScope {
 
     internal constructor(httpClient: HttpClient, httpMethod: HttpMethod) : this(httpClient) {
         this.httpMethod = httpMethod
     }
 
-    constructor(httpMethod: HttpMethod) : this(PlexusClient.instance.httpClient) {
-        this.httpMethod = httpMethod
-    }
+    internal constructor(httpMethod: HttpMethod) : this(PlexusClient.instance.httpClient, httpMethod)
 
     private val job = Job()
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.IO + job
 
     var queryParams: Parameters = arrayListOf()
-    private var httpMethod = HttpMethod.GET
+    var httpMethod = HttpMethod.GET
+        private set
     var headers = arrayListOf<Pair<String, String>>()
     var url = ""
     var body = ""
@@ -84,7 +83,7 @@ class PlexusRequest internal constructor(val httpClient: HttpClient) : Coroutine
             httpResponse = suspendingHttpResponseBytes()
         }
 
-        PlexusResponse(httpResponse!!, time)
+        PlexusResponse(httpResponse!!, time, this@PlexusRequest)
     }
 
     fun responseBytes(): PlexusResponse<ByteArray> {
@@ -104,7 +103,7 @@ class PlexusRequest internal constructor(val httpClient: HttpClient) : Coroutine
             httpResponse = suspendingHttpResponseString()
         }
 
-        PlexusResponse(httpResponse!!, time)
+        PlexusResponse(httpResponse!!, time, this@PlexusRequest)
     }
 
     fun responseString(): PlexusResponse<String> {
