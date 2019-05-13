@@ -2,7 +2,7 @@ package com.tomlonghurst.plexus
 
 import java.net.http.HttpResponse
 
-class PlexusResponse(private val httpResponse: HttpResponse<String>) {
+class PlexusResponse internal constructor(private val httpResponse: HttpResponse<String>, val timeTaken: Long) {
 
     val body = httpResponse.body()
     val headers = httpResponse.headers().map()

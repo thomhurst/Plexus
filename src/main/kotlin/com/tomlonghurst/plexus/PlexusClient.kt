@@ -23,9 +23,10 @@ class PlexusClient {
     var sslContext: SSLContext? = null
     var sslParameters: SSLParameters? = null
 
+    internal val httpClient by lazy { build() }
+
     fun get(path: String, parameters: Parameters? = null): PlexusRequest {
-        return PlexusRequest(build()).apply {
-            this.httpMethod = HttpMethod.GET
+        return PlexusRequest(httpClient, HttpMethod.GET).apply {
             this.url = path
             parameters?.let { queryParams -> this.queryParams = queryParams }
             this.httpVersion = this@PlexusClient.httpVersion
@@ -34,8 +35,7 @@ class PlexusClient {
     }
 
     fun post(path: String, parameters: Parameters? = null): PlexusRequest {
-        return PlexusRequest(build()).apply {
-            this.httpMethod = HttpMethod.POST
+        return PlexusRequest(httpClient, HttpMethod.POST).apply {
             this.url = path
             parameters?.let { queryParams -> this.queryParams = queryParams }
             this.httpVersion = this@PlexusClient.httpVersion
@@ -44,8 +44,7 @@ class PlexusClient {
     }
 
     fun put(path: String, parameters: Parameters? = null): PlexusRequest {
-        return PlexusRequest(build()).apply {
-            this.httpMethod = HttpMethod.PUT
+        return PlexusRequest(httpClient, HttpMethod.PUT).apply {
             this.url = path
             parameters?.let { queryParams -> this.queryParams = queryParams }
             this.httpVersion = this@PlexusClient.httpVersion
@@ -54,8 +53,7 @@ class PlexusClient {
     }
 
     fun patch(path: String, parameters: Parameters? = null): PlexusRequest {
-        return PlexusRequest(build()).apply {
-            this.httpMethod = HttpMethod.PATCH
+        return PlexusRequest(httpClient, HttpMethod.PATCH).apply {
             this.url = path
             parameters?.let { queryParams -> this.queryParams = queryParams }
             this.httpVersion = this@PlexusClient.httpVersion
@@ -64,8 +62,7 @@ class PlexusClient {
     }
 
     fun delete(path: String, parameters: Parameters? = null): PlexusRequest {
-        return PlexusRequest(build()).apply {
-            this.httpMethod = HttpMethod.DELETE
+        return PlexusRequest(httpClient, HttpMethod.DELETE).apply {
             this.url = path
             parameters?.let { queryParams -> this.queryParams = queryParams }
             this.httpVersion = this@PlexusClient.httpVersion
@@ -74,8 +71,7 @@ class PlexusClient {
     }
 
     fun head(path: String, parameters: Parameters? = null): PlexusRequest {
-        return PlexusRequest(build()).apply {
-            this.httpMethod = HttpMethod.HEAD
+        return PlexusRequest(httpClient, HttpMethod.HEAD).apply {
             this.url = path
             parameters?.let { queryParams -> this.queryParams = queryParams }
             this.httpVersion = this@PlexusClient.httpVersion
@@ -85,6 +81,7 @@ class PlexusClient {
 
     private fun build(): HttpClient {
         val httpClientBuilder = HttpClient.newBuilder()
+
         httpClientBuilder.apply {
             timeout?.let { timeout -> connectTimeout(timeout) }
             cookieHandler?.let { cookieHandler -> cookieHandler(cookieHandler) }
