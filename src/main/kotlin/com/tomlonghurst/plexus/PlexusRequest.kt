@@ -19,6 +19,7 @@ class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineS
 
     internal constructor(httpMethod: HttpMethod) : this(PlexusClient.instance.httpClient, httpMethod)
 
+    lateinit var uri: URI
     private val job = Job()
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.IO + job
@@ -42,11 +43,30 @@ class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineS
     private val httpRequest by lazy { build() }
 
     private fun build(): HttpRequest? {
-        val httpRequestBuilder =  HttpRequest.newBuilder()
+        val httpRequestBuilder = HttpRequest.newBuilder()
+
+        uri = URI.create(url)
+
+        val queryParameters = (uri.query ?: "").replace("?", "")
+            .split("&")
+            .filter { queryParameter ->
+                queryParameter.contains("=")
+            }
+            .filter { queryParameter ->
+                queryParameter.split("=").filter { word -> word.isNotEmpty() }.size == 2
+            }
+            .map { queryParameter ->
+                val pair = queryParameter.split("=")
+                pair[0] to pair[1]
+            }
+
+        val existingQueryParams = mutableListOf<Pair<String, String>>()
+        existingQueryParams.addAll(queryParameters)
+        existingQueryParams.addAll(queryParams)
 
         val queryString =
-            if(queryParams.isNotEmpty()) {
-                queryParams
+            if (existingQueryParams.isNotEmpty()) {
+                "&${existingQueryParams
                     .map { p ->
                         URLEncoder.encode(p.first, Charsets.UTF_8) + "=" + URLEncoder.encode(
                             p.second,
@@ -54,12 +74,16 @@ class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineS
                         )
                     }
                     .reduce { p1, p2 -> "$p1&$p2" }
+                }"
             } else {
                 ""
             }
 
+        uri = URI(uri.scheme, uri.authority, uri.path, queryString, uri.fragment ?: "")
+        url = uri.toURL().toString()
+
         httpRequestBuilder
-            .uri(URI.create(url + queryString))
+            .uri(uri)
             .method(httpMethod.toString(), bodyPublisher)
             .timeout(timeout)
             .version(httpVersion)
