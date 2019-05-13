@@ -77,21 +77,41 @@ class PlexusRequest internal constructor(val httpClient: HttpClient) : Coroutine
         return this
     }
 
-    suspend fun awaitResponse(coroutineDispatcher: CoroutineDispatcher = Dispatchers.IO) = withContext(coroutineDispatcher) {
-        var httpResponse: HttpResponse<String>? = null
+    suspend fun awaitResponseBytes(coroutineDispatcher: CoroutineDispatcher = Dispatchers.IO) = withContext(coroutineDispatcher) {
+        var httpResponse: HttpResponse<ByteArray>? = null
 
         val time = measureTimeMillis {
-            httpResponse = suspendingHttpResponse()
+            httpResponse = suspendingHttpResponseBytes()
         }
 
         PlexusResponse(httpResponse!!, time)
     }
 
-    fun response(): PlexusResponse {
-        return runBlocking { awaitResponse() }
+    fun responseBytes(): PlexusResponse<ByteArray> {
+        return runBlocking { awaitResponseBytes() }
     }
 
-    private suspend fun suspendingHttpResponse() = suspendCoroutine<HttpResponse<String>> { coroutineContinuation ->
+    private suspend fun suspendingHttpResponseBytes() = suspendCoroutine<HttpResponse<ByteArray>> { coroutineContinuation ->
+        httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenAcceptAsync { httpResponse ->
+            coroutineContinuation.resume(httpResponse )
+        }
+    }
+
+    suspend fun awaitResponseString(coroutineDispatcher: CoroutineDispatcher = Dispatchers.IO) = withContext(coroutineDispatcher) {
+        var httpResponse: HttpResponse<String>? = null
+
+        val time = measureTimeMillis {
+            httpResponse = suspendingHttpResponseString()
+        }
+
+        PlexusResponse(httpResponse!!, time)
+    }
+
+    fun responseString(): PlexusResponse<String> {
+        return runBlocking { awaitResponseString() }
+    }
+
+    private suspend fun suspendingHttpResponseString() = suspendCoroutine<HttpResponse<String>> { coroutineContinuation ->
         httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenAcceptAsync { httpResponse ->
             coroutineContinuation.resume(httpResponse )
         }
