@@ -1,7 +1,6 @@
 package com.tomlonghurst.plexus
 import kotlinx.coroutines.*
 import java.net.URI
-import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -68,10 +67,11 @@ class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineS
             if (existingQueryParams.isNotEmpty()) {
                 "&${existingQueryParams
                     .map { p ->
-                        URLEncoder.encode(p.first, Charsets.UTF_8) + "=" + URLEncoder.encode(
-                            p.second,
-                            Charsets.UTF_8
-                        )
+//                        URLEncoder.encode(p.first, Charsets.UTF_8) + "=" + URLEncoder.encode(
+//                            p.second,
+//                            Charsets.UTF_8
+//                        )
+                        "${p.first}=${p.second}"
                     }
                     .reduce { p1, p2 -> "$p1&$p2" }
                 }"
@@ -115,8 +115,10 @@ class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineS
     }
 
     private suspend fun suspendingHttpResponseBytes() = suspendCoroutine<HttpResponse<ByteArray>> { coroutineContinuation ->
+        PlexusCounters.incrementRequestCount()
+
         httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenAcceptAsync { httpResponse ->
-            coroutineContinuation.resume(httpResponse )
+            coroutineContinuation.resume(httpResponse)
         }
     }
 
@@ -135,6 +137,8 @@ class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineS
     }
 
     private suspend fun suspendingHttpResponseString() = suspendCoroutine<HttpResponse<String>> { coroutineContinuation ->
+        PlexusCounters.incrementRequestCount()
+
         httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenAcceptAsync { httpResponse ->
             coroutineContinuation.resume(httpResponse )
         }
