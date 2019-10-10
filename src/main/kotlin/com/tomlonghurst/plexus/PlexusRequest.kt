@@ -8,9 +8,8 @@ import java.time.Duration
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
-import kotlin.system.measureTimeMillis
 
-class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineScope {
+class PlexusRequest private constructor(private val httpClient: HttpClient) : CoroutineScope {
 
     internal constructor(httpClient: HttpClient, httpMethod: HttpMethod) : this(httpClient) {
         this.httpMethod = httpMethod
@@ -101,13 +100,9 @@ class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineS
     }
 
     suspend fun awaitResponseBytes(coroutineDispatcher: CoroutineDispatcher = Dispatchers.IO) = withContext(coroutineDispatcher) {
-        var httpResponse: HttpResponse<ByteArray>? = null
-
-        val time = measureTimeMillis {
-            httpResponse = suspendingHttpResponseBytes()
+        getAndTimeResponse {
+            suspendingHttpResponseBytes()
         }
-
-        PlexusResponse(httpResponse!!, time, this@PlexusRequest)
     }
 
     fun responseBytes(): PlexusResponse<ByteArray> {
@@ -115,21 +110,15 @@ class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineS
     }
 
     private suspend fun suspendingHttpResponseBytes() = suspendCoroutine<HttpResponse<ByteArray>> { coroutineContinuation ->
-        PlexusCounters.incrementRequestCount()
-
         httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenAcceptAsync { httpResponse ->
             coroutineContinuation.resume(httpResponse)
         }
     }
 
     suspend fun awaitResponseString(coroutineDispatcher: CoroutineDispatcher = Dispatchers.IO) = withContext(coroutineDispatcher) {
-        var httpResponse: HttpResponse<String>? = null
-
-        val time = measureTimeMillis {
-            httpResponse = suspendingHttpResponseString()
+        getAndTimeResponse {
+            suspendingHttpResponseString()
         }
-
-        PlexusResponse(httpResponse!!, time, this@PlexusRequest)
     }
 
     fun responseString(): PlexusResponse<String> {
@@ -137,10 +126,16 @@ class PlexusRequest private constructor(val httpClient: HttpClient) : CoroutineS
     }
 
     private suspend fun suspendingHttpResponseString() = suspendCoroutine<HttpResponse<String>> { coroutineContinuation ->
-        PlexusCounters.incrementRequestCount()
-
         httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenAcceptAsync { httpResponse ->
-            coroutineContinuation.resume(httpResponse )
+            coroutineContinuation.resume(httpResponse)
         }
+    }
+
+    private inline fun <reified T> getAndTimeResponse(action: () -> HttpResponse<T>): PlexusResponse<T> {
+        val start = System.currentTimeMillis()
+        val response = action()
+        val time = System.currentTimeMillis() - start
+
+        return PlexusResponse(response, time, this)
     }
 }
