@@ -1,21 +1,22 @@
 package com.tomlonghurst.plexus
+import com.tomlonghurst.plexus.extensions.await
 import kotlinx.coroutines.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.time.Duration
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
-class PlexusRequest private constructor(private val httpClient: HttpClient) : CoroutineScope {
+class PlexusRequest private constructor(private val httpClient: OkHttpClient) : CoroutineScope {
 
-    internal constructor(httpClient: HttpClient, httpMethod: HttpMethod) : this(httpClient) {
+    internal constructor(httpClient: OkHttpClient, httpMethod: HttpMethod) : this(httpClient) {
         this.httpMethod = httpMethod
     }
 
-    internal constructor(httpMethod: HttpMethod) : this(PlexusClient.instance.httpClient, httpMethod)
+    internal constructor(httpMethod: HttpMethod) : this(PlexusClient.httpClient, httpMethod)
 
     lateinit var uri: URI
     private val job = Job()
@@ -28,20 +29,18 @@ class PlexusRequest private constructor(private val httpClient: HttpClient) : Co
     var headers = arrayListOf<Pair<String, String>>()
     var url = ""
     var body = ""
-    var timeout = httpClient.connectTimeout().orElse(Duration.ofSeconds(30))
-    var httpVersion = httpClient.version()
 
-    private val bodyPublisher: HttpRequest.BodyPublisher
+    private val requestBody: RequestBody?
         get() = if (body.isBlank()) {
-            HttpRequest.BodyPublishers.noBody()
+            null
         } else {
-            HttpRequest.BodyPublishers.ofString(body)
+            body.toRequestBody("application/json".toMediaTypeOrNull())
         }
 
     private val httpRequest by lazy { build() }
 
-    private fun build(): HttpRequest? {
-        val httpRequestBuilder = HttpRequest.newBuilder()
+    private fun build(): Request {
+        val httpRequestBuilder = Request.Builder()
 
         uri = URI.create(url)
 
@@ -82,10 +81,8 @@ class PlexusRequest private constructor(private val httpClient: HttpClient) : Co
         url = uri.toURL().toString()
 
         httpRequestBuilder
-            .uri(uri)
-            .method(httpMethod.toString(), bodyPublisher)
-            .timeout(timeout)
-            .version(httpVersion)
+            .url(url)
+            .method(httpMethod.toString(), requestBody)
 
         for (header in headers) {
             httpRequestBuilder.header(header.first, header.second)
@@ -99,39 +96,19 @@ class PlexusRequest private constructor(private val httpClient: HttpClient) : Co
         return this
     }
 
-    suspend fun awaitResponseBytes(coroutineDispatcher: CoroutineDispatcher = Dispatchers.IO) = withContext(coroutineDispatcher) {
-        getAndTimeResponse {
-            suspendingHttpResponseBytes()
-        }
-    }
-
-    fun responseBytes(): PlexusResponse<ByteArray> {
-        return runBlocking { awaitResponseBytes() }
-    }
-
-    private suspend fun suspendingHttpResponseBytes() = suspendCoroutine<HttpResponse<ByteArray>> { coroutineContinuation ->
-        httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenAcceptAsync { httpResponse ->
-            coroutineContinuation.resume(httpResponse)
-        }
-    }
-
     suspend fun awaitResponseString(coroutineDispatcher: CoroutineDispatcher = Dispatchers.IO) = withContext(coroutineDispatcher) {
         getAndTimeResponse {
-            suspendingHttpResponseString()
+            suspendingHttpResponse()
         }
     }
 
-    fun responseString(): PlexusResponse<String> {
+    fun responseString(): PlexusResponse {
         return runBlocking { awaitResponseString() }
     }
 
-    private suspend fun suspendingHttpResponseString() = suspendCoroutine<HttpResponse<String>> { coroutineContinuation ->
-        httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenAcceptAsync { httpResponse ->
-            coroutineContinuation.resume(httpResponse)
-        }
-    }
+    private suspend fun suspendingHttpResponse() = httpClient.newCall(httpRequest).await()
 
-    private inline fun <reified T> getAndTimeResponse(action: () -> HttpResponse<T>): PlexusResponse<T> {
+    private inline fun getAndTimeResponse(action: () -> Response): PlexusResponse {
         val start = System.currentTimeMillis()
         val response = action()
         val time = System.currentTimeMillis() - start
