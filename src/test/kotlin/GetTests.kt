@@ -9,7 +9,7 @@ class GetTests {
     fun test1() {
         val plexusResponse = Plexus.get("https://reststop.randomhouse.com/resources/titles/9781400079148").responseString()
 
-        Assert.assertTrue(plexusResponse.body.startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><title"))
+        Assert.assertTrue(plexusResponse.body!!.string().startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><title"))
     }
 
     @Test
@@ -18,7 +18,7 @@ class GetTests {
             header("Accept" to "application/json")
         }.responseString()
 
-        Assert.assertTrue(plexusResponse.body.startsWith("""{"@uri":"https://reststop.randomhouse.com/resources/titles/9781400079148"""))
+        Assert.assertTrue(plexusResponse.body!!.string().startsWith("""{"@uri":"https://reststop.randomhouse.com/resources/titles/9781400079148"""))
     }
 
     @Test
@@ -27,7 +27,7 @@ class GetTests {
             val plexusResponse =
                 Plexus.get("https://reststop.randomhouse.com/resources/titles/9781400079148").awaitResponseString()
 
-            Assert.assertTrue(plexusResponse.body.startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><title"))
+            Assert.assertTrue(plexusResponse.body!!.string().startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><title"))
         }
     }
 
@@ -38,7 +38,7 @@ class GetTests {
                 header("Accept" to "application/json")
             }.awaitResponseString()
 
-            Assert.assertTrue(plexusResponse.body.startsWith("""{"@uri":"https://reststop.randomhouse.com/resources/titles/9781400079148"""))
+            Assert.assertTrue(plexusResponse.body!!.string().startsWith("""{"@uri":"https://reststop.randomhouse.com/resources/titles/9781400079148"""))
         }
     }
 }

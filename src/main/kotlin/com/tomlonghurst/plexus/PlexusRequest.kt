@@ -16,7 +16,7 @@ class PlexusRequest private constructor(private val httpClient: OkHttpClient) : 
         this.httpMethod = httpMethod
     }
 
-    internal constructor(httpMethod: HttpMethod) : this(PlexusClient.httpClient, httpMethod)
+    internal constructor(httpMethod: HttpMethod) : this(PlexusClient.instance.httpClient, httpMethod)
 
     lateinit var uri: URI
     private val job = Job()
