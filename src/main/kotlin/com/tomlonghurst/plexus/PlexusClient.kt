@@ -1,10 +1,10 @@
 package com.tomlonghurst.plexus
 import okhttp3.OkHttpClient
 
-class PlexusClient {
+class PlexusClient(val httpClient: OkHttpClient = OkHttpClient()) {
 
     companion object {
-        var httpClient = OkHttpClient()
+        var instance = PlexusClient()
     }
 
     val defaultHeaders = arrayListOf<Pair<String, String>>()
