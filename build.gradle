@@ -6,34 +6,47 @@ buildscript {
         }
     }
     dependencies {
-        classpath "com.github.ben-manes:gradle-versions-plugin:0.26.0"
+        classpath "com.github.ben-manes:gradle-versions-plugin:0.28.0"
     }
 }
 
 plugins {
     id 'java'
-    id 'org.jetbrains.kotlin.jvm' version '1.3.50'
-    id "com.github.ben-manes.versions" version "0.26.0"
+    id 'org.jetbrains.kotlin.jvm' version '1.3.72'
+    id "com.github.ben-manes.versions" version "0.28.0"
 }
 
 group 'com.tomlonghurst'
 version '1.0-SNAPSHOT'
 
-sourceCompatibility = 11
+sourceCompatibility = 13
 
 repositories {
     mavenCentral()
 }
 
+dependencyUpdates.resolutionStrategy {
+    componentSelection { rules ->
+        rules.all { ComponentSelection selection ->
+            boolean rejected = ['alpha', 'beta', 'rc', 'cr', 'm', 'preview', 'eap', 'dev'].any { qualifier ->
+                selection.candidate.version.toLowerCase() ==~ /(?i).*[.-]${qualifier}[.\d-]*/
+            }
+            if (rejected) {
+                selection.reject('Release candidate')
+            }
+        }
+    }
+}
+
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2'
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.5'
+    testCompile group: 'junit', name: 'junit', version: '4.13'
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = "13"
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = "13"
 }
